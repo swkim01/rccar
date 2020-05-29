@@ -1,6 +1,6 @@
-#!/usr/bin/python3
-from flask import Flask, request, render_template
-import cv2
+#!/usr/bin/python
+from bottle import route,run,get,post,response,static_file,request
+import cv2,cv
 import base64
 import RPi.GPIO as gpio
 import math
@@ -53,13 +53,11 @@ cam=cv2.VideoCapture(0)
 if cam.isOpened()==False:
     print("cant open cam")
     exit()
-cam.set(cv2.CAP_PROP_FRAME_WIDTH,320)
-cam.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
-
-app = Flask(__name__, template_folder=".")
+cam.set(cv.CV_CAP_PROP_FRAME_WIDTH,320)
+cam.set(cv.CV_CAP_PROP_FRAME_HEIGHT,240)
 
 #respone image for ajax by base64 string
-@app.route('/getImage')
+@get('/getImage')
 def get_image2base64():
     global cam
     ret,image=cam.read()
@@ -69,20 +67,19 @@ def get_image2base64():
     return encodedStr
 
 #control rccar
-@app.route('/rccar', methods=['POST'])
+@post('/rccar')
 def control_rccar():
-    speed=float(request.form.get('speed'))
-    angle=float(request.form.get('angle'))
+    speed=float(request.forms.get('speed'))
+    angle=float(request.forms.get('angle'))
     command(speed, angle)
     return ''
 
-@app.route('/')
+@route('/')
 def do_route():
-    return render_template("rccar.html")
+    return static_file("rccar.html", root=".")
 
-@app.route('/joystick.js')
+@route('/joystick.js')
 def do_joystick():
-    return render_template("joystick.js")
+    return static_file("joystick.js", root=".")
 
-if __name__ == '__main__':
-    app.run(host='localhost', port=8080)
+run(host='<IP address>', port=8080, server='paste')

@@ -1,33 +1,36 @@
-#!/usr/bin/python
-from bottle import route,run,get,post,response,static_file,request
-import cv2,cv
+#!/usr/bin/python3
+from flask import Flask, Response, request, render_template
+import cv2
 from controlServer import *
 
 cam=cv2.VideoCapture(0)
 if cam.isOpened()==False:
     print("cant open cam")
     exit()
-cam.set(cv.CV_CAP_PROP_FRAME_WIDTH,320)
-cam.set(cv.CV_CAP_PROP_FRAME_HEIGHT,240)
+cam.set(cv2.CAP_PROP_FRAME_WIDTH,320)
+cam.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
 
-@get('/stream')
-def do_stream():
-    response.set_header('Content-Type', 'multipart/x-mixed-replace; boundary=--MjpgBound')
+app = Flask(__name__, template_folder='.')
+
+def generate():
     while True:
         ret,image = cam.read()
-        jpegdata=cv2.imencode(".jpeg",image)[1].tostring()
+        jpegdata=cv2.imencode(".jpeg",image)[1].tobytes()
         string = "--MjpgBound\r\n"
         string += "Content-Type: image/jpeg\r\n"
         string += "Content-length: "+str(len(jpegdata))+"\r\n\r\n"
-        string += jpegdata
-        string += "\r\n\r\n\r\n"
-        yield string
+        yield (string.encode("utf-8") + jpegdata + "\r\n\r\n".encode("utf-8"))
+
+#stream camera
+@app.route('/stream')
+def do_stream():
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=--MjpgBound')
 
 #control rccar
-@post('/motor')
+@app.route('/motor', methods=['POST'])
 def control_rccar():
-    command=request.forms.get('command')
-    print command
+    command=request.form.get('command')
+    print(command)
     if command == "GO":
         forward()
     elif command == "LEFT":
@@ -41,9 +44,10 @@ def control_rccar():
     return ''
 
 
-@route('/')
+@app.route('/')
 def do_route():
-    return static_file("index.html", root=".")
+    return render_template("index.html")
 
-initMotors()
-run(host='<IP address>', port=8080, server='paste')
+if __name__ == '__main__':
+    initMotors()
+    app.run(host='localhost', port=8080)

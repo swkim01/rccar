@@ -59,7 +59,7 @@ function getImage() {
   xmlhttp.open("GET", "/getImage", true);
   xmlhttp.send();
   if (!paused) {
-    setTimeout('getImage()',500);
+    setTimeout('getImage()',100);
   }
 }
 function imageCallback() {
